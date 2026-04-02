@@ -2,15 +2,17 @@ import { prisma } from "@/lib/prisma"
 import { ProductGrid } from "@/components/pos/ProductGrid"
 import { CartPanel } from "@/components/pos/CartPanel"
 import { TableSelector } from "@/components/pos/TableSelector"
+import { getSession, logout } from "@/app/actions/auth"
 
 export default async function POSPage() {
-  const [categoriesData, productsData, tablesData] = await Promise.all([
+  const [categoriesData, productsData, tablesData, sessionUser] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: 'asc' } }),
     prisma.product.findMany({ 
       include: { variations: true },
       orderBy: { name: 'asc' }
     }),
-    prisma.table.findMany({ orderBy: { tableNo: 'asc' } })
+    prisma.table.findMany({ orderBy: { tableNo: 'asc' } }),
+    getSession()
   ])
 
   // Safely serialize Prisma Decimal and Date objects before passing to Client Components
@@ -33,10 +35,14 @@ export default async function POSPage() {
             <div className="h-8 w-[1px] bg-slate-200"></div>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end leading-tight">
-                <span className="text-slate-800 font-bold overflow-hidden text-ellipsis whitespace-nowrap">Alex Morgan</span>
-                <span className="text-xs font-semibold text-blue-600">Cashier</span>
+                <span className="text-slate-800 font-bold overflow-hidden text-ellipsis whitespace-nowrap">{sessionUser?.name || "System Admin"}</span>
+                <span className="text-xs font-semibold text-blue-600">{sessionUser?.role || "ADMIN"}</span>
               </div>
-              <div className="w-12 h-12 shadow-md rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center font-bold text-blue-700 border-2 border-white text-lg ring-1 ring-slate-100 shrink-0">AL</div>
+              <form action={logout} className="flex shrink-0">
+                <button type="submit" className="w-10 h-10 shadow-sm rounded-full bg-rose-50 flex flex-col items-center justify-center font-bold text-rose-600 border border-rose-200 text-[10px] ring-1 ring-rose-100 shrink-0 hover:bg-rose-100">
+                  <span className="uppercase">Lock</span>
+                </button>
+              </form>
             </div>
           </div>
         </header>

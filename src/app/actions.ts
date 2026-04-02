@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
 
 // In a real app we would use Zod to validate the payload
 export async function processOrder({
@@ -27,6 +28,7 @@ export async function processOrder({
       paymentMethod,
       orderType,
       tableId: tableId || null,
+      status: "PENDING",
       items: {
         create: items.map((item) => {
           const itemTotal = item.basePrice + item.options.reduce((sum: number, opt: any) => sum + opt.priceAdj, 0)
@@ -89,4 +91,27 @@ export async function processOrder({
   }
 
   return { success: true, orderId: order.id, orderNumber: order.orderNumber }
+}
+
+export async function completeKdsOrder(orderId: string, tableId: string | null) {
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "COMPLETED" }
+  })
+  
+  if (tableId) {
+    const pendingOrders = await prisma.order.count({
+      where: { tableId, status: "PENDING" }
+    })
+    
+    if (pendingOrders === 0) {
+      await prisma.table.update({
+        where: { id: tableId },
+        data: { status: "AVAILABLE" }
+      })
+    }
+  }
+  
+  revalidatePath("/kitchen")
+  revalidatePath("/admin/tables") // Ensure tables admin views the availability change
 }

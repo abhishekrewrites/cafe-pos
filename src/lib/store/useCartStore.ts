@@ -19,7 +19,9 @@ interface CartState {
   items: CartItem[]
   taxRate: number
   activeTableId: string | null
+  orderType: string
   setActiveTableId: (id: string | null) => void
+  setOrderType: (type: string) => void
   addToCart: (item: CartItem) => void
   removeFromCart: (cartItemId: string) => void
   updateQuantity: (cartItemId: string, quantity: number) => void
@@ -33,8 +35,10 @@ export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   taxRate: 0.05, // 5% default tax
   activeTableId: null,
+  orderType: "TAKEAWAY",
 
-  setActiveTableId: (id) => set({ activeTableId: id }),
+  setActiveTableId: (id) => set({ activeTableId: id, orderType: id ? "DINE_IN" : get().orderType }),
+  setOrderType: (type) => set({ orderType: type }),
   
   addToCart: (item) => set((state) => {
     // Check if an identical item exists (same product and same exact options)
@@ -62,7 +66,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     )
   })),
   
-  clearCart: () => set({ items: [], activeTableId: null }),
+  clearCart: () => set({ items: [], activeTableId: null, orderType: "TAKEAWAY" }),
   
   getSubtotal: () => {
     return get().items.reduce((total, item) => {

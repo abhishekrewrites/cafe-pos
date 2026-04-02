@@ -9,9 +9,12 @@ import { motion, AnimatePresence } from "framer-motion"
 
 export function CartPanel() {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [splitWays, setSplitWays] = useState(1)
   const { 
     items, 
     activeTableId,
+    orderType,
+    setOrderType,
     removeFromCart, 
     updateQuantity, 
     clearCart,
@@ -32,7 +35,7 @@ export function CartPanel() {
         items,
         totalAmount: total,
         paymentMethod: "CASH", // Defaulting to Cash for prototype
-        orderType: activeTableId ? "DINE_IN" : "TAKEAWAY",
+        orderType: orderType,
         tableId: activeTableId
       })
       if (result.success) {
@@ -59,6 +62,20 @@ export function CartPanel() {
         >
           {items.reduce((acc, i) => acc + i.quantity, 0)} ITEMS
         </motion.span>
+      </div>
+
+      <div className="px-6 py-3 bg-white/70 backdrop-blur-md flex gap-2 border-b border-slate-200/50 z-10 w-full shrink-0">
+        {(["TAKEAWAY", "DINE_IN", "DELIVERY"] as const).map(type => (
+          <Button
+            key={type}
+            variant={orderType === type ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setOrderType(type)}
+            className={`flex-1 text-[11px] font-bold tracking-wider rounded-lg transition-all ${orderType === type ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+          >
+            {type.replace("_", " ")}
+          </Button>
+        ))}
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 z-0 w-full overflow-x-hidden relative">
@@ -142,6 +159,24 @@ export function CartPanel() {
           </motion.div>
         </div>
 
+        <div className="mb-4 pt-3 border-t border-slate-200/50">
+          <div className="flex items-center justify-between mb-3 text-sm font-semibold text-slate-600">
+            <span>Split Bill</span>
+            <div className="flex items-center gap-3 bg-slate-100 p-1 rounded-lg">
+              <button disabled={items.length === 0} onClick={() => setSplitWays(Math.max(1, splitWays - 1))} className="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center hover:text-blue-600 disabled:opacity-50">-</button>
+              <span className="w-4 text-center font-mono">{splitWays}</span>
+              <button disabled={items.length === 0} onClick={() => setSplitWays(Math.min(6, splitWays + 1))} className="w-6 h-6 rounded bg-white shadow-sm flex items-center justify-center hover:text-blue-600 disabled:opacity-50">+</button>
+            </div>
+          </div>
+          
+          {splitWays > 1 && (
+            <div className="flex justify-between items-center bg-blue-50/50 p-2 rounded-lg mb-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Each Pays ({splitWays})</span>
+              <span className="font-bold text-blue-600 font-mono text-lg">₹{(total / splitWays).toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-3 mt-4">
           <Button variant="outline" className="flex-1 border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 h-14 rounded-xl font-semibold shadow-sm transition-all" onClick={clearCart} disabled={items.length === 0 || isProcessing}>
             Clear
@@ -151,7 +186,7 @@ export function CartPanel() {
             disabled={items.length === 0 || isProcessing}
             onClick={handleCheckout}
           >
-            {isProcessing ? "Processing..." : `Charge ₹${total.toFixed(2)}`}
+            {isProcessing ? "Processing..." : (splitWays > 1 ? `Charge ₹${(total / splitWays).toFixed(2)}` : `Charge ₹${total.toFixed(2)}`)}
           </Button>
         </div>
       </div>
